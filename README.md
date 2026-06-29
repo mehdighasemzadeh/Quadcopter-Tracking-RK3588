@@ -1,128 +1,228 @@
-🚁 Quadcopter Target Tracking with RK3588
+# 🚁 RK3588 UAV Target Tracking
 
-An ultra-low latency, high-performance edge AI tracking system for Quadcopters. Designed to run entirely on the Rockchip RK3588 NPU (companion computer), this project provides autonomous object tracking (vehicles, people) using YOLOv8, classical computer vision trackers, a Kalman Filter for path coasting, and a dynamic PID controller linked directly to PX4 via MAVSDK.
+A complete **Edge AI framework** for autonomous UAV target tracking using **YOLOv8**, **hybrid object tracking**, **Kalman prediction**, and **MAVLink communication**. The system is optimized for **RK3588 NPU** acceleration and includes an interactive **Ground Control Station (GCS)** for target selection, telemetry monitoring, and controller tuning.
 
-Demo
+---
 
-System Architecture
+# Demo
 
-This project splits the workload between an edge companion computer (RK3588) handling the heavy AI and flight dynamics, and a ground control station providing a real-time operator interface.
+<p align="center">
+  <img src="images/demo.gif" width="900">
+</p>
 
-The hardware architecture consists of two main nodes. The Edge Computer (RK3588) is mounted on the drone, capturing frames directly from the camera, running the NPU AI inference and classical tracking, and calculating flight velocities. It sends telemetry and compressed video to the Ground Station, which reassembles the real-time feed and provides an operator interface.
+<p align="center">
+  <em>
+  Real-time UAV target tracking using YOLOv8, hybrid object tracking,
+  Kalman prediction and RK3588 NPU acceleration.
+  </em>
+</p>
 
-Hybrid Tracking Logic
+---
 
-To achieve robustness against occlusions and AI scaling issues, the software uses a multi-threaded hybrid approach.
 
-Features
+# System Architecture
 
-High-Speed AI Inference: Runs YOLOv8 Nano/Small at 45 FPS / 25 FPS utilizing the RK3588's NPU.
+The framework is divided into two independent components:
 
-Hybrid Tracking Pipeline: Combines AI detections with optical tracking (CSRT @ 30 FPS / ViT @ 45 FPS).
+- **Edge AI Module (RK3588)**
+- **Ground Control Station (PC)**
 
-Kalman Filter Coasting: Predicts target trajectory and coasts the drone if the target is temporarily lost.
+<p align="center">
+  <img src="images/architecture.png" width="900">
+</p>
 
-Auto-Recovery: AI thread constantly evaluates the IoU (Intersection over Union) to force resyncs if optical drift occurs.
+The RK3588 companion computer performs object detection, target tracking, Kalman prediction, and communicates with the flight controller through MAVLink, while the Ground Control Station provides an intuitive interface for visualization and parameter tuning.
 
-Installation
+---
 
-Clone Repository
+# Hybrid Tracking Pipeline
 
+<p align="center">
+  <img src="images/tracking_flow.png" width="850">
+</p>
+
+The target tracking framework combines multiple modules to maximize robustness during high-speed UAV operation.
+
+### Tracking Pipeline
+
+1. YOLOv8 detects vehicles.
+2. User selects a target from the Ground Control Station.
+3. A visual tracker (CSRT or ViT) follows the target.
+4. Kalman Filter predicts target motion during temporary tracking failures.
+5. The detector re-initializes the tracker when the target is recovered.
+6. PID controller generates flight commands for autonomous target following.
+
+---
+
+# Features
+
+- 🚀 RK3588 NPU acceleration
+- 🎯 YOLOv8 Nano & Small (INT8)
+- 📷 Real-time object detection
+- 🔄 Hybrid tracking (CSRT / ViT)
+- 📈 Kalman Filter target prediction
+- 🛰 MAVLink communication
+- 🎮 Interactive Ground Control Station
+- ⚙️ Online PID parameter tuning
+- 📡 Live video streaming
+- 🌍 Gazebo simulation support
+- 🚁 Compatible with PX4 flight controllers
+
+---
+
+# Performance
+
+| Model | Precision | FPS |
+|-------|-----------|----:|
+| YOLOv8 Nano | INT8 | **45 FPS** |
+| YOLOv8 Small | INT8 | **20 FPS** |
+
+---
+
+# Hardware Requirements
+
+- RK3588-based board (Orange Pi 5, Radxa Rock 5B, NanoPC-T6, Firefly, etc.)
+- PX4 Flight Controller
+- USB/UART connection
+- Ground Control Station (Windows/Linux/macOS)
+
+---
+
+# Installation
+
+## Clone Repository
+
+```bash
 git clone https://github.com/mehdighasemzadeh/Quadcopter-Tracking-RK3588.git
+
 cd Quadcopter-Tracking-RK3588
+```
 
+## Ground Control Station
 
-Setup Ground Station (PC)
+```bash
+pip install opencv-python numpy tk mavsdk asyncio
+```
 
-# Install requirements
-pip3 install opencv-python numpy tk mavsdk asyncio
+## RK3588 Companion Computer
 
+```bash
+pip install opencv-python opencv-contrib-python numpy psutil asyncio mavsdk
+```
 
-Setup Drone (RK3588 Companion Computer)
+Install RKNN Toolkit Lite:
 
-You need a Debian/Ubuntu OS with Rockchip NPU drivers installed and Python 3.8.
+```bash
+pip install rknn_toolkit_lite2-1.6.0-cp38-cp38-linux_aarch64.whl
+```
 
-# Install core Python requirements
-pip3 install opencv-python opencv-contrib-python numpy psutil asyncio mavsdk
+---
 
-# Install Rockchip NPU Toolkit 1.6
-pip3 install rknn_toolkit_lite2-1.6.0-cp38-cp38-linux_aarch64.whl
+# Running the System
 
+## Step 1 — Boost RK3588 Performance
 
-Requirements
-
-Core Dependencies
-
-Companion Computer: RK3588 based board (e.g., Orange Pi 5, Radxa Rock 5B, NanoPC-T6).
-
-Flight Controller: Any PX4 or ArduPilot flight controller connected via UART/USB to the RK3588.
-
-Ground Station: Any PC (Windows/Linux/Mac) to run the Tkinter dashboard and receive video.
-
-Python 3.8 (Strictly required for RKNN Toolkit compatibility)
-
-Running the System
-
-Step 1: Maximize RK3588 Performance
-
-Before running the drone script, overdrive the RK3588 to ensure maximum FPS:
-
+```bash
 cd RK3588
+
 sudo chmod +x boost.sh
+
 sudo ./boost.sh
+```
 
+---
 
-Step 2: Configure IP Addresses
+## Step 2 — Configure Network
 
-Edit RK3588/quadcopter.py and Station/station.py. Ensure STATION_IP and DRONE_IP match your network configuration.
+Update the IP addresses inside the configuration files to match your Ground Control Station.
 
-Step 3: Run SITL (Simulation)
+---
 
-Open Gazebo with PX4 SITL on your Ground Station.
+## Step 3 — Gazebo Simulation
 
-Start the Gazebo Bridge on PC: cd Station && python3 send_data_to_gazebo.py
+Run the bridge:
 
-Start the Dashboard on PC: python3 station.py
+```bash
+python Station/send_data_to_gazebo.py
+```
 
-Start Drone script on RK3588 (Ensure Gazebo_sim = True): cd RK3588 && python3 quadcopter.py
+Launch the Ground Station:
 
-Step 4: Run HITL / Real Life
+```bash
+python Station/station.py
+```
 
-Connect the RK3588 to your Flight Controller via UART/USB.
+Start the UAV software:
 
-Update RK3588/quadcopter.py: set Gazebo_sim = False and update MAVLINK_PORT.
+```bash
+cd RK3588
 
-Start Dashboard on PC: python3 station.py
+python quadcopter.py
+```
 
-Start Drone script on RK3588: python3 quadcopter.py
+---
 
-Project Structure
+## Step 4 — Real Flight
 
-Quadcopter-Tracking-RK3588/
+1. Connect RK3588 to the flight controller.
+2. Set
+
+```python
+Gazebo_sim = False
+```
+
+3. Configure the MAVLink port.
+4. Launch the Ground Station.
+5. Run
+
+```bash
+python quadcopter.py
+```
+
+---
+
+# Repository Structure
+
+```text
+RK3588-UAV-Tracker/
 │
-├── images/                             
-│   ├── architecture.png
+├── images/
 │   ├── demo.gif
 │   ├── demo.mp4
+│   ├── gcs.png
+│   ├── architecture.png
 │   └── tracking_flow.png
 │
-├── RK3588/                             
-│   ├── py_utils/                       
-│   ├── boost.sh                        
-│   ├── car1_demo.mp4                   
-│   ├── object_tracking_vittrack...     
-│   ├── quadcopter.py                   
-│   ├── yolo.py                         
-│   ├── yolov8n.rknn                    
-│   └── yolov8s.rknn                    
+├── RK3588/
+│   ├── py_utils/
+│   ├── boost.sh
+│   ├── quadcopter.py
+│   ├── yolo.py
+│   ├── yolov8n.rknn
+│   └── yolov8s.rknn
 │
-├── Station/                            
-│   ├── send_data_to_gazebo.py          
-│   └── station.py                      
+├── Station/
+│   ├── station.py
+│   └── send_data_to_gazebo.py
 │
-└── README.md
+├── README.md
+└── LICENSE
+```
+
+---
+
+# Future Work
+
+- Multi-object tracking
+- Deep Re-Identification
+- Adaptive controller
+- Multi-UAV coordination
+- YOLO11 support
+- TensorRT deployment
 
 
-License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Acknowledgements
+
+This repository presents an open-source implementation of a real-time UAV target tracking framework developed for educational and research purposes. Some proprietary components from the original industrial system have been replaced with simplified open-source alternatives.
